@@ -6,6 +6,9 @@ import requests
 import zipfile
 import urllib
 from tqdm import tqdm
+import tarfile
+import subprocess
+import shutil
 
 class Popper:
     """Wrapper class for hypothesis validation using sequential falsification testing."""
@@ -36,7 +39,10 @@ class Popper:
 
         self.data_path = data_path
         if not os.path.exists(os.path.join(data_path, 'bio_database')):
+            print('It will take a few minutes to download the data for the first time...')
             self.download_all_data()
+        else:
+            print('Data already exists, loading...')
 
         if loader_type == 'bio':
             self.data_loader = ExperimentalDataLoader(
@@ -121,7 +127,6 @@ class Popper:
             use_react_agent=True
         )
     
-    
     def launch_UI(self):
         config = {"recursion_limit": 500}
         for s in self.agent.graph.stream({"messages": ("user", prompt)}, stream_mode="values", config = config):
@@ -139,44 +144,23 @@ class Popper:
         file_name = 'popper_data_processed'
         self._download_and_extract_data(url, file_name)
 
-    def _merge_with_rsync(self, src, dst):
-        """Merge directories using rsync."""
-        try:
-            subprocess.run(
-                ["rsync", "-a", "--ignore-existing", src + "/", dst + "/"],
-                check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
-        except subprocess.CalledProcessError as e:
-            print(f"Error during rsync: {e.stderr.decode()}")
-
     def _download_and_extract_data(self, url, file_name):
         """Download, extract, and merge directories using rsync."""
         tar_file_path = os.path.join(self.data_path, f"{file_name}.tar.gz")
+        
+        if not os.path.exists(tar_file_path):
+            # Download the file
+            print(f"Downloading {file_name}.tar.gz...")
+            self._download_with_progress(url, tar_file_path)
+            print("Download complete.")
 
-        # Download the file
-        print(f"Downloading {file_name}.tar.gz...")
-        self._download_with_progress(url, tar_file_path)
-        print("Download complete.")
-
-        # Extract the tar.gz file
-        print("Extracting files...")
-        with tarfile.open(tar_file_path, 'r:gz') as tar:
-            tar.extractall(self.data_path)
-        print("Extraction complete.")
-
-        # Clean up the tar.gz file
-        os.remove(tar_file_path)
-
-        # Merge extracted contents into the data_path directory
-        extracted_dir = os.path.join(self.data_path, file_name)
-        if os.path.exists(extracted_dir):
-            print(f"Merging extracted directory '{extracted_dir}' into '{self.data_path}'...")
-            self._merge_with_rsync(extracted_dir, self.data_path)
-
-            # Remove the now-empty extracted directory
-            shutil.rmtree(extracted_dir)
+            # Extract the tar.gz file
+            print("Extracting files...")
+            with tarfile.open(tar_file_path, 'r:gz') as tar:
+                for member in tqdm(tar.getmembers(), desc="Extracting: "):
+                    member.name = member.name.split('popper_data_processed/')[-1]  # Strip directory structure
+                    tar.extract(member, self.data_path)           
+                print("Extraction complete.")
 
     def _download_with_progress(self, url, file_path):
         """Download a file with a progress bar."""

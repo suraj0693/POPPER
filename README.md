@@ -51,6 +51,8 @@ export OPENAI_API_KEY="YOUR_API_KEY"
 export ANTHROPIC_API_KEY="YOUR_API_KEY"
 ```
 
+Datasets will be automatically downloaded to specified data folder when you run the code.
+
 ## Core API Usage
 
 ```python
