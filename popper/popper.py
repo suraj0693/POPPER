@@ -128,16 +128,109 @@ class Popper:
         )
     
     def launch_UI(self):
-        config = {"recursion_limit": 500}
-        for s in self.agent.graph.stream({"messages": ("user", prompt)}, stream_mode="values", config = config):
-            message = s["messages"][-1]
-            out = message.content
-            if self.agent.num_of_tests + 1 > self.agent.max_num_of_tests or self.agent.max_failed_tests <= len(self.agent.test_proposal_agent.failed_tests):
-                print('Surpassing the maximum number of falsification tests, stopped and summarizing...')
-                out = self.agent.summarize()['messages'][0][1]
-                break
-        
-        result = self.agent.output_parser.invoke(out)
+        import gradio as gr
+        from gradio import ChatMessage
+        from time import time
+
+        def generate_response(prompt, 
+                            designer_history = [],
+                            executor_history = [],
+                            relevance_checker_history = [],
+                            error_control_history = [],
+                            summarizer_history = []):
+
+            designer_history.append(ChatMessage(role="user", content=prompt))
+            yield designer_history, executor_history, relevance_checker_history, error_control_history, summarizer_history
+
+            self.agent.main_hypothesis = prompt
+            self.agent.log = []
+            config = {"recursion_limit": 500}
+            inputs = {"messages": [("user", prompt)]}
+
+            for s in self.agent.graph.stream(inputs, stream_mode="values", config = config):         
+                        
+                message = s["messages"][-1]
+                if 'stop_reason' in s["messages"][-1].response_metadata:
+                    stop_reason = s["messages"][-1].response_metadata['stop_reason']
+                else:
+                    stop_reason = None
+
+                print(message)
+                if (message.type != "human") and (stop_reason != 'end_turn'):
+                    content = message.content
+                    if 'Relevance score' in content:
+                        relevance_checker_history.append(ChatMessage(role="assistant", content=content))
+                    
+                    designer_history.append(ChatMessage(role="assistant", content=content))
+
+                yield designer_history, executor_history, relevance_checker_history, error_control_history, summarizer_history
+
+                if self.agent.num_of_tests + 1 > self.agent.max_num_of_tests or self.agent.max_failed_tests <= len(self.agent.test_proposal_agent.failed_tests):
+                    out = self.summarize()['messages'][0][1]
+                    summarizer_history.append(ChatMessage(role="assistant", content="Surpassing the maximum number of falsification tests, stopped and summarizing..."))
+                    summarizer_history.append(ChatMessage(role="assistant", content=out))
+                    yield designer_history, executor_history, relevance_checker_history, error_control_history, summarizer_history
+                    break
+
+            yield designer_history, executor_history, relevance_checker_history, error_control_history
+
+
+        def like(evt: gr.LikeData):
+            print("User liked the response")
+            print(evt.index, evt.liked, evt.value)
+
+        with gr.Blocks() as demo:
+            with gr.Row():
+                with gr.Column(scale=1):
+                    designer_chatbot = gr.Chatbot(label="Popper Experiment Designer", 
+                                        type="messages", height=600, 
+                                        show_copy_button=True, 
+                                        show_share_button = True, 
+                                        group_consecutive_messages = False,
+                                        show_copy_all_button = True,
+                    )
+                    relevance_checker_chatbot = gr.Chatbot(label="Relevance Checker",
+                                                type="messages", height=200,
+                                                show_copy_button=True,
+                                                show_share_button = True,
+                                                group_consecutive_messages = False,
+                                                show_copy_all_button = True
+                    )
+
+                with gr.Column(scale=1):
+                    executor_chatbot = gr.Chatbot(label="Popper Experiment Executor", 
+                                                type="messages", height=600, 
+                                                show_copy_button=True, 
+                                                show_share_button = True, 
+                                                group_consecutive_messages = False, 
+                                                show_copy_all_button = True,
+                                                )
+                    error_control_chatbot = gr.Chatbot(label="Sequential Error Control",
+                                                type="messages", height=200,
+                                                show_copy_button=True,
+                                                show_share_button = True,
+                                                group_consecutive_messages = False,
+                                                show_copy_all_button = True
+                    )
+
+            with gr.Row():
+                summarizer = gr.Chatbot(label="Popper Summarizer", 
+                                                type="messages", height=150, 
+                                                show_copy_button=True, 
+                                                show_share_button = True, 
+                                                group_consecutive_messages = False, 
+                                                show_copy_all_button = True,
+                                                )
+            with gr.Row():
+                # Textbox on the left, and Button with an icon on the right
+                prompt_input = gr.Textbox(show_label = False, placeholder="What is your hypothesis?", scale=8)
+                button = gr.Button("Send")
+
+            button.click(lambda: gr.update(value=""), inputs=None, outputs=prompt_input)
+            # Bind button click to generate_response function, feeding results to both chatbots
+            button.click(generate_response, inputs=[prompt_input, designer_chatbot, executor_chatbot, relevance_checker_chatbot, error_control_chatbot, summarizer], outputs=[designer_chatbot, executor_chatbot, relevance_checker_chatbot, error_control_chatbot, summarizer])
+
+        demo.launch(share = True)
 
     def download_all_data(self):
         url = "https://dataverse.harvard.edu/api/access/datafile/10888484"

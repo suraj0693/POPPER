@@ -105,8 +105,6 @@ You can deploy a simple UI interface with one line of code using your datasets o
 agent.launch_ui(share = True)
 ```
 
-Here is an example interface:
-
 <p align="center"><img src="./figs/ui_example.gif" alt="logo" width="800px" /></p>
 
 ## Hypothesis in Popper
