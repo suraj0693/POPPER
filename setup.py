@@ -23,7 +23,7 @@ with open(path.join(this_directory, 'requirements.txt'),
           encoding='utf-8') as f:
     requirements = f.read().splitlines()
 
-setup(name='POPPER',
+setup(name='popper_agent',
       version=__version__,
       license='MIT',
       description='POPPER',
