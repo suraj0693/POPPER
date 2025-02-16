@@ -1,4 +1,4 @@
-"""
+
 # Based on NiLearn package
 # License: simplified BSD
 
