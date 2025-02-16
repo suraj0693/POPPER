@@ -1,6 +1,6 @@
 import sys
 import os
-sys.path.append(os.getcwd())
+sys.path.append('../')
 
 from baseline_agents.coder_agent import BaseAgent
 from baseline_agents.react_agent import ReactAgent
@@ -60,7 +60,8 @@ if args.use_simple_template:
     exp_name+='_simple_template'
 
 samples = args.samples
-bm = gene_perturb_hypothesis(num_of_samples = samples, permuted=args.permute, dataset = args.dataset)
+bm = gene_perturb_hypothesis(num_of_samples = samples,
+permuted=args.permute, dataset = args.dataset, path = args.path)
 predictions = []
 targets = []
 
@@ -95,26 +96,6 @@ for i, example in tqdm(enumerate(bm.get_iterator()), total=samples, desc="Proces
         agent = SelfRefineAgent(
             llm="claude-3-5-sonnet-20241022"
         )
-    elif args.agent_type == 'nodataguess':
-        class parser(BaseModel):
-            """parse True or False from the output of the LLM"""
-
-            res: Optional[bool] = Field(
-                description="Return True or False based on the output of the LLM"
-            )
-
-
-        llm = get_llm('claude-3-5-sonnet-20241022')
-        check_prompt = ChatPromptTemplate.from_messages(
-            [
-                (
-                    "system", "Given a hypothesis, return whether it is true or false. Only return True or False, nothing else."
-                ),
-                ("placeholder", "{messages}"),
-            ]
-        )
-        llm_parser = check_prompt | llm.with_structured_output(parser)
-
     else:
         raise ValueError(f"Agent {args.agent_type} not found")
     
@@ -154,5 +135,7 @@ for metric in eval_results:
 
     
 import pickle
-with open('data/' + exp_name + '.pkl', 'wb') as f:
-    pickle.dump(predictions, f)
+import os
+os.makedirs(args.path + '/res', exist_ok=True)
+with open(args.path + '/res/' + exp_name + '_res_final.pkl', 'wb') as f:
+    pickle.dump(res, f)

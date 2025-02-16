@@ -94,10 +94,10 @@ class discovery_bench_hypothesis:
         if path is None:
             raise ValueError
 
-        root_path = os.path.join(path, 'benchmark/discovery_bench/')
+        root_path = os.path.join(path, 'benchmark/discoverybench/')
         self.split = split
         self.synthetic = synthetic
-        self.data_path = os.path.join(root_path, "synthetic" if self.synthetic else "real", self.split)
+        self.data_path = os.path.join(root_path, "discoverybench", "synthetic" if self.synthetic else "real", self.split)
 
         ground_truth_path = root_path + "answer_key/answer_key_synth.csv" if self.synthetic else root_path + "answer_key/answer_key_real_cleaned_1.csv"
         self.ground_truth = pd.read_csv(ground_truth_path)

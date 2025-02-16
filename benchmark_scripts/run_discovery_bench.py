@@ -1,6 +1,6 @@
 import sys
 import os
-sys.path.append(os.getcwd())
+sys.path.append('../')
 
 from popper.benchmark import discovery_bench_hypothesis
 from popper.agent import SequentialFalsificationTest

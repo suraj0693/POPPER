@@ -2,10 +2,7 @@ from popper.react_utils import create_agent
 from popper.prompt_utils import get_react_coding_agent_system_prompt
 from popper.llm.custom_model import CustomChatModel
 from langchain_anthropic import ChatAnthropic
-from langchain_together import Together
-from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
-from langchain_google_genai import ChatGoogleGenerativeAI
 import os
 import json
 import langchain
@@ -88,12 +85,6 @@ class ReactAgent():
             llm = ChatOpenAI(
                 model=model,
                 api_key=os.environ["OPENAI_API_KEY"],
-                **kwargs
-            )
-        elif (api == "google"):
-            llm = ChatGoogleGenerativeAI(
-                model=model,
-                google_api_key=os.environ["GEMINI_API_KEY"],
                 **kwargs
             )
         elif (api == 'llama'):

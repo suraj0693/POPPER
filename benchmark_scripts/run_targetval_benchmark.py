@@ -1,6 +1,6 @@
 import sys
 import os
-sys.path.append(os.getcwd())
+sys.path.append('../')
 
 from popper.benchmark import gene_perturb_hypothesis
 from popper.agent import SequentialFalsificationTest
@@ -82,7 +82,8 @@ if args.user_study_neg_genes:
 print('Experiment name: ' + exp_name)
 res = {}
 samples = args.samples
-bm = gene_perturb_hypothesis(num_of_samples = samples, permuted=args.permute, dataset = args.dataset, user_study_neg_genes= args.user_study_neg_genes)
+bm = gene_perturb_hypothesis(num_of_samples = samples, permuted=args.permute, 
+dataset = args.dataset, user_study_neg_genes= args.user_study_neg_genes, path = args.path)
 #response = []
 for example in tqdm(bm.get_iterator(), total=samples, desc="Processing"):
     import traceback
@@ -117,5 +118,7 @@ for example in tqdm(bm.get_iterator(), total=samples, desc="Processing"):
         continue
     
 import pickle
-with open('data/' + exp_name + '_res_final.pkl', 'wb') as f:
+import os
+os.makedirs(args.path + '/res', exist_ok=True)
+with open(args.path + '/res/' + exp_name + '_res_final.pkl', 'wb') as f:
     pickle.dump(res, f)

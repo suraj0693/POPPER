@@ -4,9 +4,12 @@ import os
 import json
 import time
 import openai
+from glob import glob
+import numpy as np
+import pandas as pd
+
 from popper.llm.custom_model import CustomChatModel
 from langchain_anthropic import ChatAnthropic
-from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 from langchain_core.messages.base import get_msg_title_repr
 from langchain_core.utils.interactive_env import is_interactive_env
@@ -271,3 +274,89 @@ def pretty_print(message, printout = True):
             if printout:
                 print(f"{title}")
     return title
+
+class CustomDataLoader:
+    def __init__(self, data_folder, random_seed=42):
+        """Initialize data loader with path to data folder.
+        
+        Args:
+            data_folder (str): Path to folder containing pickle files
+            random_seed (int): Random seed for permutations
+        """
+        self.data_path = data_folder
+        self.random_seed = random_seed
+        self.table_dict = {}
+        self._load_all_datasets()
+        self.data_desc = self._generate_data_description()
+
+    def _load_all_datasets(self):
+        """Automatically loads all pickle and CSV files found in data_path."""
+        pickle_files = glob(os.path.join(self.data_path, "*.pkl"))
+        csv_files = glob(os.path.join(self.data_path, "*.csv"))
+        
+        if not pickle_files and not csv_files:
+            raise ValueError(f"No pickle or CSV files found in {self.data_path}")
+            
+        for file_path in pickle_files + csv_files:
+            file_name = os.path.basename(file_path)
+            dataset_name = os.path.splitext(file_name)[0]
+            df_name = f"df_{dataset_name}"
+            if file_path.endswith('.pkl'):
+                self.table_dict[df_name] = self._load_data(file_name)
+            elif file_path.endswith('.csv'):
+                self.table_dict[df_name] = pd.read_csv(file_path)
+
+    def _load_data(self, file_name):
+        """Helper method to load data from a pickle file."""
+        try:
+            df = pd.read_pickle(os.path.join(self.data_path, file_name))
+            if not isinstance(df, pd.DataFrame):
+                raise ValueError(f"File {file_name} does not contain a pandas DataFrame")
+            return df
+        except Exception as e:
+            print(f"Error loading {file_name}: {str(e)}")
+            return None
+
+    def _generate_data_description(self):
+        """Generates a description of each dataset's columns and the first row."""
+        desc = ""
+        for name, df in self.table_dict.items():
+            if df is not None:
+                desc += f"{name}:\nColumns: {df.columns.tolist()}\n"
+                desc += f"Sample row: {dict(zip(df.columns, df.iloc[0]))}\n\n"
+        return desc
+
+    def get_data(self, table_name):
+        """Returns the requested DataFrame."""
+        return self.table_dict.get(table_name, None)
+
+    def load_into_globals(self):
+        """Loads each dataset into the global namespace."""
+        for name, df in self.table_dict.items():
+            if df is not None:
+                globals()[name] = df
+
+    def display_data_description(self):
+        """Prints the data description."""
+        print(self.data_desc)
+
+    def permute_columns(self, dataset_name, columns_to_permute):
+        """Permutes specified columns in a dataset.
+        
+        Args:
+            dataset_name (str): Name of dataset (without 'df_' prefix)
+            columns_to_permute (list): List of column names to permute
+        """
+        df_name = f"df_{dataset_name}"
+        df = self.table_dict.get(df_name, None)
+        
+        if df is None:
+            raise ValueError(f"Dataset {df_name} not found")
+            
+        if not all(col in df.columns for col in columns_to_permute):
+            raise ValueError(f"Not all columns {columns_to_permute} found in {df_name}")
+            
+        np.random.seed(self.random_seed)
+        permuted_df = df[columns_to_permute].sample(frac=1).reset_index(drop=True)
+        df[columns_to_permute] = permuted_df
+        self.table_dict[df_name] = df

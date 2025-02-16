@@ -1,6 +1,6 @@
 import sys
 import os
-sys.path.append(os.getcwd())
+sys.path.append('../')
 
 from baseline_agents.coder_agent import BaseAgent
 from baseline_agents.react_agent import ReactAgent
