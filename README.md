@@ -1,4 +1,4 @@
-# POPPER: Automated Hypothesis Testing with Agentic Sequential Falsifications
+# POPPER: Automated Hypothesis Validation with Agentic Sequential Falsifications
 
 This repository hosts the code base for the paper
 
