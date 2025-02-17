@@ -156,6 +156,9 @@ As each hypothesis in discoverybench has its own associated dataset, the example
 
 Bash scripts for reproducing the paper is provided in the `benchmark_scripts/run_targetval.sh` for `TargetVal` benchmark and `benchmark_scripts/run_discoverybench.sh` for `DiscoveryBench` benchmark. 
 
+## Acknowledgement
+The DiscoveryBench benchmark and some of the baseline agents are built on top of [allenai/discoverybench](https://github.com/allenai/discoverybench). Thanks for their awsome work!
+
 ## Contact
 
 For any questions, please raise an issue in the GitHub or contact Kexin Huang (kexinh@cs.stanford.edu).
