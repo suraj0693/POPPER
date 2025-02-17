@@ -2,7 +2,7 @@
 
 This repository hosts the code base for the paper
 
-**Automated Agentic Hypothesis Testing with Sequential Falsifications**
+**Automated Agentic Hypothesis Validation with Sequential Falsifications**
 
 Kexin Huang*, Ying Jin*, Ryan Li*, Michael Y. Li, Emmanuel Candès, Jure Leskovec\
 [Link to Paper](https://arxiv.org/abs/2502.09858)
@@ -59,6 +59,10 @@ export ANTHROPIC_API_KEY="YOUR_API_KEY"
 ```
 
 Datasets will be automatically downloaded to specified data folder when you run the code.
+
+## Demo
+
+A demo is provided in [here](demo.ipynb) to show how to use the Popper agent to validate a hypothesis and basic functionalities of the Popper agent.
 
 ## Core API Usage
 
