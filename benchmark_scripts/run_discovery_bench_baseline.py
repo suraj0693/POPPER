@@ -25,6 +25,7 @@ argparser.add_argument('--samples', type=int, default=50)
 argparser.add_argument('--starts_from', type=int, default=0)
 argparser.add_argument("--log_file", type=str, default=".logs/baseline_log.log")
 argparser.add_argument('--permute', action='store_true', default=False)
+argparser.add_argument('--path', type=str, required = True)
 
 args = argparser.parse_args()
 
@@ -35,7 +36,7 @@ if args.permute:
     exp_name+='_permuted'
 
 samples = args.samples
-bm = discovery_bench_hypothesis(num_samples = samples)
+bm = discovery_bench_hypothesis(num_samples = samples, path = path)
 predictions = []
 targets = []
 

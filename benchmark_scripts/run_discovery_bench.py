@@ -26,6 +26,7 @@ argparser.add_argument('--llm_approx', action='store_true', default=False)
 argparser.add_argument('--e_value', action='store_true', default=False)
 argparser.add_argument('--react', action='store_true', default=False)
 argparser.add_argument('--relevance_checker', action='store_true', default=False)
+argparser.add_argument('--path', type=str, required = True)
 
 args = argparser.parse_args()
 
@@ -56,7 +57,7 @@ print(f"Running {exp_name}")
 
 res = []
 samples = args.samples
-bm = discovery_bench_hypothesis(num_samples = samples)
+bm = discovery_bench_hypothesis(num_samples = samples, path=args.path)
 predictions = []
 targets = []
 
