@@ -104,7 +104,7 @@ class ReactAgent():
             llm.client = openai.Client(base_url="http://127.0.0.1:40000/v1", api_key="EMPTY").chat.completions
         return llm
 
-    def generate(self, data_loader, test_spec, domain):
+    def generate(self, data_loader, test_spec, domain, log = None):
         try:
             self.agent.tools[0]._set_globals(data_loader.table_dict)
             dataset_desc = data_loader.data_desc

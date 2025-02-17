@@ -598,7 +598,7 @@ class falsification_test_coding_agent:
         workflow.add_edge("reflect", "generate")
         self.app = workflow.compile()
 
-    def go(self, question):
+    def go(self, question, log = None):
         print(question)
         self.question = question
         config = {"recursion_limit": 500}
@@ -630,7 +630,7 @@ class falsification_test_react_agent:
         
         self.pvalue_parser = self.pvalue_check_prompt | self.llm.with_structured_output(parser_yes_no)
     
-    def go(self, question):
+    def go(self, question, log = None):
         def parse_falsification_test(input_string):
             # Define the regex pattern to capture each field, allowing for variable spacing
             pattern = (
@@ -674,38 +674,44 @@ class falsification_test_react_agent:
         
         for _ in range(self.max_retry):
             try:
-                captured_output = self.agent.generate(self.data_loader, test_spec, self.domain)
+                captured_output = self.agent.generate(self.data_loader, test_spec, self.domain, log)
                 if not captured_output:
                     print("---No Captured Output---")
                     print("---DECISION: RE-TRY SOLUTION---")
+                    log['executor'].append("No Captured Output - Retry Solution")
                     continue
                 
                 for _ in range(10):
                     parsed_output = self.pvalue_parser.invoke({ "messages": [("user", captured_output)]}).dict()
                     if parsed_output:
                         print(parsed_output)
+                        log['executor'].append(parsed_output)
                         break
                 
                 if 'check_output_error' in parsed_output and parsed_output['check_output_error'] and parsed_output['check_output_error'].strip().lower() == "no":
                     print("---P-value OUTPUT CHECK: FAILED---")
                     print("---DECISION: RE-TRY SOLUTION---")
+                    log['executor'].append("P-value OUTPUT CHECK: FAILED - Retry Solution")
                     continue
                 p_val = float(parsed_output['p_val'])
                 
                 if np.isnan(p_val):
                     print("---P-value is nan: FAILED---")
                     print("---DECISION: RE-TRY SOLUTION---")
+                    log['executor'].append("P-value is nan: FAILED - Retry Solution")
                     continue
 
                 if p_val == 0:
                     print("---P-value is 0: FAILED---")
                     print("---DECISION: RE-TRY SOLUTION---")
+                    log['executor'].append("P-value is 0: FAILED - Retry Solution")
                     continue
 
                 # No errors
                 print("---NO CODE TEST FAILURES---")
                 print("---DECISION: FINISH---")
-                
+                log['executor'].append("NO CODE TEST FAILURES - FINISH")
+
                 return {
                     "error": "no",
                     "status": "success",
@@ -717,9 +723,11 @@ class falsification_test_react_agent:
                 print(f"Falsification Test failed with the following error: {e}")
                 print(traceback.format_exc())
                 print("---DECISION: RE-TRY SOLUTION---")
+                log['executor'].append(f"Falsification Test failed with the following error: {e}")
         
         print(f"Falsification Test exceeded maximum number of retries; max_retries={self.max_retry}")
         print("---DECISION: FINISH---")
+        log['executor'].append(f"Falsification Test exceeded maximum number of retries; max_retries={self.max_retry}")
         return {
             "error": "yes",
             "status": "Failed test",
@@ -766,7 +774,7 @@ class falsification_test_proposal_agent:
         self.chain = self.system_prompt | self.llm.with_structured_output(test_specification)
         self.output_parser = self.llm.with_structured_output(test_specification)
 
-    def go(self, main_hypothesis, test_results=None):
+    def go(self, main_hypothesis, test_results=None, log=None):
         if not test_results:
             test_results = self.existing_tests
         prompt_modifier = get_test_proposal_agent_user_prompt(self.domain, main_hypothesis, self.data, test_results, self.failed_tests)
@@ -776,11 +784,10 @@ class falsification_test_proposal_agent:
 
         config = {"recursion_limit": 500}
         inputs = {"messages": [("user", prompt_modifier)]}
-        log = []
         for s in self.app.stream(inputs, stream_mode="values", config = config):
             message = s["messages"][-1]
             out = pretty_print(message)
-            log.append(out)
+            log['designer'].append(out)
         
         for _ in range(10):
             # retry when output_parser fails
@@ -813,10 +820,18 @@ class SequentialFalsificationTest:
         )
         self.proposal_relevance_checker = self.proposal_relevance_checker_prompt | self.llm.with_structured_output(relevance_subhypothesis)
         
+        self.log = {
+            'designer': [],
+            'executor': [],
+            'relevance_checker': [],
+            'summarizer': [],
+            'sequential_testing': []
+        }
 
     def summarize(self):
         to_print = [get_msg_title_repr("Summarizer", bold=is_interactive_env())]
         print(to_print[0])
+        self.log['summarizer'].append(to_print[0])
         prompt_modifier = get_summarizer_system_prompt()
         
         prompt = ChatPromptTemplate.from_messages(
@@ -848,8 +863,9 @@ class SequentialFalsificationTest:
             message = response["messages"][-1]
             out = pretty_print(message, printout = True)
             to_print.append(out)
+            self.log['summarizer'].append(out)
 
-        self.log.append('\n'.join(to_print))
+        #self.log.append('\n'.join(to_print))
 
         return {"messages": [('assistant', response["messages"][-1].content)]}
 
@@ -896,19 +912,22 @@ class SequentialFalsificationTest:
             test_results = '\n'.join([f"------- Round {i+1} ------- \n Falsification Test: {self.tracked_tests[i]} \n test statistics: {self.tracked_stat[i]}" for i in range(len(self.tracked_tests))]) if len(self.tracked_tests) > 0 else "No Implemented Falsification Test Yet."
             if self.relevance_checker:
                 for i in range(self.max_failed_tests):
-                    proposal = self.test_proposal_agent.go(self.main_hypothesis, test_results)
+                    proposal = self.test_proposal_agent.go(self.main_hypothesis, test_results, self.log)
                     proposal_check = self.proposal_relevance_checker.invoke({ "messages": [("user", f"Subhypothesis: {proposal}; Main hypothesis: {self.main_hypothesis}")]}).dict()
                     if float(proposal_check['relevance_score']) < 0.8:
                         self.test_proposal_agent.add_to_failed_tests(proposal)
                         print(f"Proposed falsification test is not relevant enough to the main hypothesis! \n Proposal: \n{proposal} \nRelevance score: {proposal_check['relevance_score']} \nReasoning: {proposal_check['relevance_reasoning']}")
+                        self.log['relevance_checker'].append(f"Proposed falsification test is not relevant enough to the main hypothesis! \n Proposal: \n{proposal} \nRelevance score: {proposal_check['relevance_score']} \nReasoning: {proposal_check['relevance_reasoning']}")
                     else:
                         print(f"Proposed falsification test passes relevance check: \n Proposal: {proposal} \nRelevance score {proposal_check['relevance_score']} \nReasoning: {proposal_check['relevance_reasoning']}")
+                        self.log['relevance_checker'].append(f"Proposed falsification test passes relevance check: \n Proposal: {proposal} \nRelevance score {proposal_check['relevance_score']} \nReasoning: {proposal_check['relevance_reasoning']}")
                         return {"cur_test_proposal": proposal, "messages": [('assistant', "Proposed falsification test: " + proposal)]}
             else:
                 proposal = self.test_proposal_agent.go(self.main_hypothesis, test_results)
                 return {"cur_test_proposal": proposal, "messages": [('assistant', "Proposed falsification test: " + proposal)]}
+
         def implement_falsification_test(state: State):
-            out = self.test_coding_agent.go(state["cur_test_proposal"])
+            out = self.test_coding_agent.go(state["cur_test_proposal"], self.log)
 
             if out['status'] == "Failed test":
                 self.implementation_success_status = False
@@ -935,6 +954,7 @@ class SequentialFalsificationTest:
         def sequential_testing(state: State):
             to_print = [get_msg_title_repr("Sequential Testing", bold=is_interactive_env())]
             print(to_print[0])
+            self.log['sequential_testing'].append(to_print[0])
             if self.aggregate_test == 'Fisher':
                 self.res, self.res_stat = fishers_method(self.tracked_stat, alpha=self.alpha)
             elif self.aggregate_test == 'LLM_approx':
@@ -950,11 +970,13 @@ class SequentialFalsificationTest:
             else:
                 output = f"List of p-values: {self.tracked_stat} \n Summarized sequential statistics: {self.res_stat} \n Sequential test result: {res_log}"
             print(output)
+            self.log['sequential_testing'].append(output)
             return {"messages": [('assistant', output)]}
 
         def implementation_status(state: State) -> Literal["sequential_testing", "design_falsification_test"]:
             to_print = [(get_msg_title_repr(f"Falsification test implementation successful? {self.implementation_success_status}", bold=is_interactive_env()))]
             print(to_print[0])
+            self.log['sequential_testing'].append(to_print[0])
             if self.implementation_success_status:
                 return "sequential_testing"
             else:
@@ -964,7 +986,7 @@ class SequentialFalsificationTest:
             res_log = "sufficient evidence - PASS" if self.res else "insufficient evidence - CONTINUE"
             to_print = [(get_msg_title_repr(f"Testing decision is {res_log}", bold=is_interactive_env()))]
             print(to_print[0])
-            
+            self.log['sequential_testing'].append(to_print[0])
             if self.res:
                 return "summarizer"
             else:
@@ -1003,7 +1025,13 @@ class SequentialFalsificationTest:
             )
 
     def go(self, prompt):
-        self.log = []
+        self.log = {
+            'designer': [],
+            'executor': [],
+            'relevance_checker': [],
+            'summarizer': [],
+            'sequential_testing': []
+        }
         self.main_hypothesis = prompt
         config = {"recursion_limit": 500}
         for s in self.graph.stream({"messages": ("user", prompt)}, stream_mode="values", config = config):
@@ -1011,7 +1039,9 @@ class SequentialFalsificationTest:
             out = message.content
             if self.num_of_tests + 1 > self.max_num_of_tests or self.max_failed_tests <= len(self.test_proposal_agent.failed_tests):
                 print('Surpassing the maximum number of falsification tests, stopped and summarizing...')
+                self.log['summarizer'].append('Surpassing the maximum number of falsification tests, stopped and summarizing...')
                 out = self.summarize()['messages'][0][1]
+                self.log['summarizer'].append(out)
                 break
 
         result = self.output_parser.invoke(out)

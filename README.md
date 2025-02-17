@@ -5,12 +5,19 @@ This repository hosts the code base for the paper
 **Automated Agentic Hypothesis Testing with Sequential Falsifications**
 
 Kexin Huang*, Ying Jin*, Ryan Li*, Michael Y. Li, Emmanuel Candès, Jure Leskovec\
-[Link to Paper]()
+[Link to Paper](https://arxiv.org/abs/2502.09858)
 
 
 If you find this work useful, please consider cite:
 
 ```
+@misc{popper,
+      title={Automated Hypothesis Validation with Agentic Sequential Falsifications}, 
+      author={Kexin Huang and Ying Jin and Ryan Li and Michael Y. Li and Emmanuel Candès and Jure Leskovec},
+      year={2025},
+      eprint={2502.09858},
+      archivePrefix={arXiv}
+}
 ```
 
 
@@ -21,7 +28,7 @@ Guided by Karl Popper's principle of falsification, Popper validates a hypothesi
 We demonstrate Popper on six domains including biology, economics, and sociology. Popper delivers robust error control, high power, and scalability. Furthermore, compared to human scientists, Popper achieved comparable performance in validating complex biological hypotheses while reducing time by 10 folds, providing a scalable, rigorous solution for hypothesis validation.
 
 
-<p align="center"><img src="./figs/popper_agent_illustration.png" alt="logo" width="800px" /></p>
+<p align="center"><img src="https://github.com/snap-stanford/POPPER/blob/main/figs/popper_agent_illustration.png" alt="logo" width="800px" /></p>
 
 
 ## Installation
@@ -98,13 +105,6 @@ agent.register_data(data_path='path/to/data', loader_type='custom')
 agent.validate(hypothesis = 'YOUR HYPOTHESIS')
 ```
 
-## UI interface
-You can deploy a simple UI interface with one line of code using your datasets or our bio dataset - a gradio UI will be generated and you can interact with it to validate your hypothesis. 
-
-```python
-agent.launch_ui(share = True)
-```
-
 <p align="center"><img src="./figs/ui_example.gif" alt="logo" width="800px" /></p>
 
 ## Hypothesis in Popper
@@ -155,6 +155,14 @@ As each hypothesis in discoverybench has its own associated dataset, the example
 ## Run benchmarks in the paper
 
 Bash scripts for reproducing the paper is provided in the `benchmark_scripts/run_targetval.sh` for `TargetVal` benchmark and `benchmark_scripts/run_discoverybench.sh` for `DiscoveryBench` benchmark. 
+
+
+## UI interface [Coming soon!]
+You can deploy a simple UI interface with one line of code using your datasets or our bio dataset - a gradio UI will be generated and you can interact with it to validate your hypothesis. 
+
+```python
+agent.launch_ui(share = True)
+```
 
 ## Contact
 
