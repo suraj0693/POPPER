@@ -175,7 +175,8 @@ agent.launch_ui()
 
 An interface like this will be popped up:
 
-[Demo interface]("https://github.com/snap-stanford/POPPER/blob/main/figs/popper_demo.mov")
+[![](https://markdown-videos-api.jorgenkh.no/youtube/jYFEeP2mEY8)](https://youtu.be/jYFEeP2mEY8)
+
 
 ## Contact
 
