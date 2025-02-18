@@ -175,7 +175,7 @@ agent.launch_ui()
 
 An interface like this will be popped up:
 
-<video src="./figs/popper_demo.mov"> </video>
+[Demo interface]("https://github.com/snap-stanford/POPPER/blob/main/figs/popper_demo.mov")
 
 ## Contact
 
