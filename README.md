@@ -175,6 +175,7 @@ agent.launch_ui()
 
 An interface like this will be popped up:
 
+<video src="./figs/popper_demo.mov"> </video>
 
 ## Contact
 
