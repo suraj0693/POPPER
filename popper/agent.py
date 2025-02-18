@@ -685,7 +685,7 @@ class falsification_test_react_agent:
                     parsed_output = self.pvalue_parser.invoke({ "messages": [("user", captured_output)]}).dict()
                     if parsed_output:
                         print(parsed_output)
-                        log['executor'].append(parsed_output)
+                        #log['executor'].append(f"Check Output Error: {parsed_output['check_output_error']}, P-Value: {parsed_output['p_val']}")
                         break
                 
                 if 'check_output_error' in parsed_output and parsed_output['check_output_error'] and parsed_output['check_output_error'].strip().lower() == "no":
@@ -711,7 +711,7 @@ class falsification_test_react_agent:
                 print("---NO CODE TEST FAILURES---")
                 print("---DECISION: FINISH---")
                 log['executor'].append("NO CODE TEST FAILURES - FINISH")
-
+                log['executor'].append(f"P-value: {p_val}")
                 return {
                     "error": "no",
                     "status": "success",
@@ -787,7 +787,9 @@ class falsification_test_proposal_agent:
         for s in self.app.stream(inputs, stream_mode="values", config = config):
             message = s["messages"][-1]
             out = pretty_print(message)
-            log['designer'].append(out)
+            pattern = r"={32}\x1b\[1m (Ai|Human) Message \x1b\[0m={32}"
+            clean_out = re.sub(pattern, '', out)
+            log['designer'].append(clean_out)
         
         for _ in range(10):
             # retry when output_parser fails
@@ -831,7 +833,6 @@ class SequentialFalsificationTest:
     def summarize(self):
         to_print = [get_msg_title_repr("Summarizer", bold=is_interactive_env())]
         print(to_print[0])
-        self.log['summarizer'].append(to_print[0])
         prompt_modifier = get_summarizer_system_prompt()
         
         prompt = ChatPromptTemplate.from_messages(
@@ -863,7 +864,10 @@ class SequentialFalsificationTest:
             message = response["messages"][-1]
             out = pretty_print(message, printout = True)
             to_print.append(out)
-            self.log['summarizer'].append(out)
+
+            pattern = r"={32}\x1b\[1m (Ai|Human) Message \x1b\[0m={32}"
+            clean_out = re.sub(pattern, '', out)
+            self.log['summarizer'].append(clean_out)
 
         #self.log.append('\n'.join(to_print))
 
@@ -954,7 +958,6 @@ class SequentialFalsificationTest:
         def sequential_testing(state: State):
             to_print = [get_msg_title_repr("Sequential Testing", bold=is_interactive_env())]
             print(to_print[0])
-            self.log['sequential_testing'].append(to_print[0])
             if self.aggregate_test == 'Fisher':
                 self.res, self.res_stat = fishers_method(self.tracked_stat, alpha=self.alpha)
             elif self.aggregate_test == 'LLM_approx':
@@ -976,7 +979,7 @@ class SequentialFalsificationTest:
         def implementation_status(state: State) -> Literal["sequential_testing", "design_falsification_test"]:
             to_print = [(get_msg_title_repr(f"Falsification test implementation successful? {self.implementation_success_status}", bold=is_interactive_env()))]
             print(to_print[0])
-            self.log['sequential_testing'].append(to_print[0])
+            self.log['sequential_testing'].append(f"Falsification test implementation successful? {self.implementation_success_status}")
             if self.implementation_success_status:
                 return "sequential_testing"
             else:
@@ -986,7 +989,7 @@ class SequentialFalsificationTest:
             res_log = "sufficient evidence - PASS" if self.res else "insufficient evidence - CONTINUE"
             to_print = [(get_msg_title_repr(f"Testing decision is {res_log}", bold=is_interactive_env()))]
             print(to_print[0])
-            self.log['sequential_testing'].append(to_print[0])
+            self.log['sequential_testing'].append(f"Testing decision is {res_log}")
             if self.res:
                 return "summarizer"
             else:

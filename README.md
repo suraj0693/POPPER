@@ -166,12 +166,15 @@ Bash scripts for reproducing the paper is provided in the `benchmark_scripts/run
 The DiscoveryBench benchmark and some of the baseline agents are built on top of [allenai/discoverybench](https://github.com/allenai/discoverybench). Thanks for their awsome work!
 
 
-## UI interface [Coming soon!]
+## UI interface
 You can deploy a simple UI interface with one line of code using your datasets or our bio dataset - a gradio UI will be generated and you can interact with it to validate your hypothesis. 
 
 ```python
-agent.launch_ui(share = True)
+agent.launch_ui()
 ```
+
+An interface like this will be popped up:
+
 
 ## Contact
 

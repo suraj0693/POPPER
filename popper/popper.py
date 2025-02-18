@@ -50,6 +50,12 @@ class Popper:
                 table_dict_selection='all_bio',
                 data_sampling=data_sampling
             )
+        elif loader_type == 'bio_selected':
+            self.data_loader = ExperimentalDataLoader(
+                data_path=data_path,
+                table_dict_selection='default',
+                data_sampling=data_sampling
+            )
         elif loader_type == 'custom':
             self.data_loader = CustomDataLoader(data_folder=data_path)
         elif loader_type == 'discovery_bench':
@@ -141,8 +147,8 @@ class Popper:
                                     error_control_history=[],
                                     summarizer_history=[]):
 
-            designer_history.append(ChatMessage(role="user", content=prompt))
-            yield designer_history, executor_history, relevance_checker_history, error_control_history, summarizer_history
+            #designer_history.append(ChatMessage(role="user", content=prompt))
+            #yield designer_history, executor_history, relevance_checker_history, error_control_history, summarizer_history
 
             # Initialize log tracking
             prev_log = copy.deepcopy(self.agent.log)  # Store initial log state
@@ -151,7 +157,7 @@ class Popper:
             task = asyncio.create_task(asyncio.to_thread(self.agent.go, prompt))
 
             while not task.done():  # Check while the agent is still running
-                print("Checking for new log messages...")
+                #print("Checking for new log messages...")
                 await asyncio.sleep(1)  # Wait for 1 second
 
                 # Check if log has changed
@@ -195,7 +201,7 @@ class Popper:
                                         show_copy_all_button = True,
                     )
                     relevance_checker_chatbot = gr.Chatbot(label="Relevance Checker",
-                                                type="messages", height=200,
+                                                type="messages", height=300,
                                                 show_copy_button=True,
                                                 show_share_button = True,
                                                 group_consecutive_messages = False,
@@ -211,7 +217,7 @@ class Popper:
                                                 show_copy_all_button = True,
                                                 )
                     error_control_chatbot = gr.Chatbot(label="Sequential Error Control",
-                                                type="messages", height=200,
+                                                type="messages", height=300,
                                                 show_copy_button=True,
                                                 show_share_button = True,
                                                 group_consecutive_messages = False,
@@ -220,7 +226,7 @@ class Popper:
 
             with gr.Row():
                 summarizer = gr.Chatbot(label="Popper Summarizer", 
-                                                type="messages", height=150, 
+                                                type="messages", height=300, 
                                                 show_copy_button=True, 
                                                 show_share_button = True, 
                                                 group_consecutive_messages = False, 
@@ -229,13 +235,14 @@ class Popper:
             with gr.Row():
                 # Textbox on the left, and Button with an icon on the right
                 prompt_input = gr.Textbox(show_label = False, placeholder="What is your hypothesis?", scale=8)
-                button = gr.Button("Send")
+                button = gr.Button("Validate")
 
             button.click(lambda: gr.update(value=""), inputs=None, outputs=prompt_input)
             # Bind button click to generate_response function, feeding results to both chatbots
             button.click(generate_response, inputs=[prompt_input, designer_chatbot, executor_chatbot, relevance_checker_chatbot, error_control_chatbot, summarizer], outputs=[designer_chatbot, executor_chatbot, relevance_checker_chatbot, error_control_chatbot, summarizer])
 
         demo.launch(share = True)
+
 
     def download_all_data(self):
         url = "https://dataverse.harvard.edu/api/access/datafile/10888484"
