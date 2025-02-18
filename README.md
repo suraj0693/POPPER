@@ -175,7 +175,8 @@ agent.launch_ui()
 
 An interface like this will be popped up:
 
-[![](https://markdown-videos-api.jorgenkh.no/youtube/jYFEeP2mEY8)](https://youtu.be/jYFEeP2mEY8)
+[![demo](https://img.youtube.com/vi/jYFEeP2mEY8/0.jpg)](https://www.youtube.com/watch?v=jYFEeP2mEY8)
+
 
 
 ## Contact
