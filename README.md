@@ -109,8 +109,6 @@ agent.register_data(data_path='path/to/data', loader_type='custom')
 agent.validate(hypothesis = 'YOUR HYPOTHESIS')
 ```
 
-<p align="center"><img src="./figs/ui_example.gif" alt="logo" width="800px" /></p>
-
 ## Hypothesis in Popper
 
 You can arbitrarily define any free-form hypothesis. In the paper, we provide two types of hypothesis: biological hypothesis and discovery-bench hypothesis.
