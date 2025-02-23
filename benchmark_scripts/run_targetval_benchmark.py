@@ -26,6 +26,7 @@ argparser.add_argument('--data_sampling', type=int, default=-1)
 argparser.add_argument('--user_study_neg_genes', action='store_true', default=False)
 argparser.add_argument('--is_locally_served', action='store_true', default=False)
 argparser.add_argument('--server_port', type=int, required=False)
+argparser.add_argument("--api_key", type=str, default="EMPTY")
 argparser.add_argument('--path', type=str, required = True)
 
 args = argparser.parse_args()
@@ -90,7 +91,7 @@ dataset = args.dataset, user_study_neg_genes= args.user_study_neg_genes, path = 
 for example in tqdm(bm.get_iterator(), total=samples, desc="Processing"):
     import traceback
     try:
-        agent = SequentialFalsificationTest(llm = args.model, is_local=args.is_locally_served, port=args.server_port)
+        agent = SequentialFalsificationTest(llm = args.model, is_local=args.is_locally_served, port=args.server_port, api_key=args.api_key)
         if args.llm_approx:
             agent.configure(data = data_loader, 
                         alpha = args.alpha, beta = 0.1, 

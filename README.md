@@ -95,6 +95,40 @@ results = agent.validate(hypothesis="Your hypothesis here")
 print(results)
 ```
 
+## Running locally-served LLM with OpenAI-Compatible API
+**Popper** supports inferencing with local LLM servers such as vLLM, SGLang, and llama.cpp, as long as they support OpenAI-compatible API. Here are some example usage with locally hosted LLMs:
+
+Using [SGLang](https://github.com/sgl-project/sglang/tree/main):
+```bash
+# mistral large 2 with SGLang, using 4 GPUs with 8-bit quantization
+python -m sglang.launch_server --model-path mistralai/Mistral-Large-Instruct-2411 --port 40000 --host 0.0.0.0 --tp 4 --quantization fp8 --mem-fraction-static 0.8 --trust-remote-code
+```
+```python
+from popper import Popper
+agent = Popper(llm="mistralai/Mistral-Large-Instruct-2411", is_locally_served=True, server_port=40000)
+agent.configure(alpha=0.1)
+agent.register_data(data_path='path/to/data', loader_type='bio')
+agent.validate(hypothesis = 'YOUR HYPOTHESIS')
+```
+
+Using [vLLM](https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html):
+```bash
+vllm serve NousResearch/Meta-Llama-3-8B-Instruct --dtype auto --api-key token-abc123
+```
+```python
+from popper import Popper
+agent = Popper(llm="NousResearch/Meta-Llama-3-8B-Instruct", is_locally_served=True, server_port=8000, api_key="token-abc123")
+```
+
+Using [llama.cpp](https://github.com/ggml-org/llama.cpp):
+```bash
+llama-server -m model.gguf --port 8080
+```
+```python
+from popper import Popper
+agent = Popper(llm="qwen2 1.5B", is_locally_served=True, server_port=8080)
+```
+
 ## Run on your own hypothesis and database
 
 You can simply dump in a set of datasets in your domain (e.g. business, economics, political science, etc.) and run Popper on your own hypothesis. 
@@ -159,6 +193,11 @@ As each hypothesis in discoverybench has its own associated dataset, the example
 Bash scripts for reproducing the paper is provided in the `benchmark_scripts/run_targetval.sh` for `TargetVal` benchmark and `benchmark_scripts/run_discoverybench.sh` for `DiscoveryBench` benchmark.
 
 **Note:** the Popper agent can read or write files to your filesystem. We recommend running the benchmark scripts inside a containerized environments. We have provided a working `Dockerfile` and an example script to launch a Docker container and execute the scripts in `benchmark_scripts/run_discoverybench_docker.sh`.
+
+**To run paper benchmarks with locally-served models,** you can simply passed in the extra parameters to the benchmark script, e.g.,
+```bash
+python benchmark_scripts/run_discovery_bench.py --exp_name discovery_bench --model llama-3.3-70b --num_tests 5 --samples 100 --permute --e_value --react --relevance_checker --is_locally_served --server_port 30000 --path PATH_TO_YOUR_DATASET
+```
 
 ## Acknowledgement
 The DiscoveryBench benchmark and some of the baseline agents are built on top of [allenai/discoverybench](https://github.com/allenai/discoverybench). Thanks for their awsome work!

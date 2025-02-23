@@ -14,7 +14,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages.base import get_msg_title_repr
 from langchain_core.utils.interactive_env import is_interactive_env
 
-def get_llm(model = 'claude-3-5-sonnet-20240620', temperature=0.7, port=30000, **kwargs):
+def get_llm(model = 'claude-3-5-sonnet-20240620', temperature=0.7, port=30000, api_key = "EMPTY", **kwargs):
     source = "Local"
     if model[:7] == 'claude-':
         source = 'Anthropic'
@@ -37,7 +37,7 @@ def get_llm(model = 'claude-3-5-sonnet-20240620', temperature=0.7, port=30000, *
         # assuming a locally-served model
         assert port is not None, f"Model {model} is not supported, please provide a local port if it is a locally-served model."
         llm = CustomChatModel(model = model, model_type=source, temperature = temperature)
-        llm.client = openai.Client(base_url=f"http://127.0.0.1:{port}/v1", api_key="EMPTY").chat.completions
+        llm.client = openai.Client(base_url=f"http://127.0.0.1:{port}/v1", api_key=api_key).chat.completions
         return llm
 
 class ExperimentalDataLoader:
