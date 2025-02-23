@@ -1,6 +1,6 @@
 import sys
 import os
-sys.path.append('../')
+sys.path.append(os.getcwd())
 
 from popper.benchmark import discovery_bench_hypothesis
 from popper.agent import SequentialFalsificationTest
@@ -26,6 +26,8 @@ argparser.add_argument('--llm_approx', action='store_true', default=False)
 argparser.add_argument('--e_value', action='store_true', default=False)
 argparser.add_argument('--react', action='store_true', default=False)
 argparser.add_argument('--relevance_checker', action='store_true', default=False)
+argparser.add_argument('--is_locally_served', action='store_true', default=False)
+argparser.add_argument('--server_port', type=int, required=False)
 argparser.add_argument('--path', type=str, required = True)
 
 args = argparser.parse_args()
@@ -79,7 +81,7 @@ for i, example in tqdm(enumerate(bm.get_iterator()), total=samples, desc="Proces
             print(df.head())
         print("------------------------------------")
         
-        agent = SequentialFalsificationTest(llm = args.model)
+        agent = SequentialFalsificationTest(llm = args.model, is_local=args.is_locally_served, port=args.server_port)
         if args.llm_approx:
             agent.configure(data = data_loader, alpha = 0.1, beta = 0.1, aggregate_test = 'LLM_approx', max_num_of_tests = args.num_tests, max_retry = 5, time_limit = 2, llm_approx = True, domain=example['domain'], relevance_checker=args.relevance_checker)
         else:

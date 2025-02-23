@@ -189,9 +189,9 @@ def p_val_to_log_likelihood_ratio(p_val):
 
 class falsification_test_coding_agent:
 
-    def __init__(self, data, llm = "claude-3-5-sonnet-20241022", max_retry = 10, time_limit = 10, reflect = True, verbose = True, llm_approx = False, domain="biology"):
+    def __init__(self, data, llm = "claude-3-5-sonnet-20241022", max_retry = 10, time_limit = 10, reflect = True, verbose = True, llm_approx = False, domain="biology", port=None):
         self.data = data
-        self.llm = get_llm(llm, temperature=0.0)
+        self.llm = get_llm(llm, temperature=0.0, port=port)
         print(llm)
         self.time_limit = time_limit
         self.llm_approx = llm_approx
@@ -607,9 +607,9 @@ class falsification_test_coding_agent:
         return graph
 
 class falsification_test_react_agent:
-    def __init__(self, data_loader, llm = "claude-3-5-sonnet-20241022", max_retry = 10, domain="biology", prompt_revision = False):
+    def __init__(self, data_loader, llm = "claude-3-5-sonnet-20241022", max_retry = 10, domain="biology", prompt_revision = False, port=None):
         self.data_loader = data_loader
-        self.llm = get_llm(llm, temperature=0.0)
+        self.llm = get_llm(llm, temperature=0.0, port=port)
         self.domain = domain
         self.max_retry = max_retry
         
@@ -729,8 +729,8 @@ class falsification_test_react_agent:
         
 
 class likelihood_estimation_agent:
-    def __init__(self, llm = 'claude-3-5-sonnet-20241022'):
-        self.llm = get_llm(llm)
+    def __init__(self, llm = 'claude-3-5-sonnet-20241022', port=None):
+        self.llm = get_llm(llm, port=port)
         self.output_parser = self.llm.with_structured_output(LogLikelihoodRatioInput)
 
     def go(self, main_hypothesis, falsification_test, data):
@@ -755,9 +755,9 @@ class likelihood_estimation_agent:
 
 
 class falsification_test_proposal_agent:
-    def __init__(self, data, llm = 'claude-3-5-sonnet-20241022', domain = "biology"):
+    def __init__(self, data, llm = 'claude-3-5-sonnet-20241022', domain = "biology", port=None):
         self.data = data
-        self.llm = get_llm(llm)
+        self.llm = get_llm(llm, port=port)
         self.domain = domain
         self.existing_tests = []
         self.failed_tests = []
@@ -798,9 +798,12 @@ class falsification_test_proposal_agent:
         self.failed_tests.append(test)
 
 class SequentialFalsificationTest:
-    def __init__(self, llm = 'claude-3-5-sonnet-20241022'):
+    def __init__(self, llm = 'claude-3-5-sonnet-20241022', is_local=False, port=None):
+        if is_local:
+            assert port is not None, "A server port must be provided when using a locally served model."
+        self.port = port
         self.llm_use = llm
-        self.llm = get_llm(llm)
+        self.llm = get_llm(llm, port=self.port)
         self.output_parser = self.llm.with_structured_output(OutputSpecification)
         self.num_of_tests = 0
         self.res = False
@@ -873,17 +876,17 @@ class SequentialFalsificationTest:
 
         if self.llm_approx:
             self.aggregate_test = 'LLM_approx'
-            self.likelihood_estimation_agent = likelihood_estimation_agent(llm = self.llm_use)
+            self.likelihood_estimation_agent = likelihood_estimation_agent(llm = self.llm_use, port=self.port)
 
         if use_react_agent and llm_approx:
             raise ValueError("React Falsitication Test Agent does not yet support llm approx")
         
         if use_react_agent:
-            self.test_coding_agent = falsification_test_react_agent(self.data_loader, llm =self.llm_use, max_retry=max_retry, domain=self.domain)
+            self.test_coding_agent = falsification_test_react_agent(self.data_loader, llm =self.llm_use, max_retry=max_retry, domain=self.domain, port=self.port)
         else:
-            self.test_coding_agent = falsification_test_coding_agent(self.data, self.llm_use, time_limit = time_limit, max_retry = max_retry, llm_approx = self.llm_approx, domain=self.domain)
+            self.test_coding_agent = falsification_test_coding_agent(self.data, self.llm_use, time_limit = time_limit, max_retry = max_retry, llm_approx = self.llm_approx, domain=self.domain, port=self.port)
 
-        self.test_proposal_agent = falsification_test_proposal_agent(self.data, self.llm_use, self.domain)
+        self.test_proposal_agent = falsification_test_proposal_agent(self.data, self.llm_use, self.domain, port=self.port)
 
         self.tracked_tests = []
         self.tracked_stat = []

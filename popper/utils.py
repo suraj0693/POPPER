@@ -14,14 +14,14 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages.base import get_msg_title_repr
 from langchain_core.utils.interactive_env import is_interactive_env
 
-def get_llm(model = 'claude-3-5-sonnet-20240620', temperature=0.7, **kwargs):
-    source = "custom"
+def get_llm(model = 'claude-3-5-sonnet-20240620', temperature=0.7, port=30000, **kwargs):
+    source = "Local"
     if model[:7] == 'claude-':
         source = 'Anthropic'
     elif model[:4] == 'gpt-' or model.startswith("o1"):
         source = 'OpenAI'
-    elif model.startswith('llama'):
-        source = "Llama"
+    # elif model.startswith('llama'):
+    #     source = "Llama"
     # if source not in ['OpenAI', 'Anthropic']:
     #     raise ValueError('Invalid source')
     if source == 'OpenAI':
@@ -33,14 +33,11 @@ def get_llm(model = 'claude-3-5-sonnet-20240620', temperature=0.7, **kwargs):
                             temperature = temperature,
                             max_tokens = 4096,
                             **kwargs)
-    elif source == 'Llama':
-        llm = CustomChatModel(model = model, model_type=source, temperature = temperature)
-        llm.client = openai.Client(base_url="http://127.0.0.1:30000/v1", api_key="EMPTY").chat.completions
-        return llm
     else:
-        # listen to a different port
+        # assuming a locally-served model
+        assert port is not None, f"Model {model} is not supported, please provide a local port if it is a locally-served model."
         llm = CustomChatModel(model = model, model_type=source, temperature = temperature)
-        llm.client = openai.Client(base_url="http://127.0.0.1:40000/v1", api_key="EMPTY").chat.completions
+        llm.client = openai.Client(base_url=f"http://127.0.0.1:{port}/v1", api_key="EMPTY").chat.completions
         return llm
 
 class ExperimentalDataLoader:

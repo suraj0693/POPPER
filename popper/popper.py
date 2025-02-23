@@ -13,7 +13,7 @@ import shutil
 class Popper:
     """Wrapper class for hypothesis validation using sequential falsification testing."""
     
-    def __init__(self, llm: str = "claude-3-5-sonnet-20240620", **kwargs):
+    def __init__(self, llm: str = "claude-3-5-sonnet-20240620", is_locally_served = False, server_port = None, **kwargs):
         """Initialize Popper.
         
         Args:
@@ -23,6 +23,8 @@ class Popper:
         self.llm = llm
         self.agent = None
         self.data_loader = None
+        self.is_local = is_locally_served
+        self.port = server_port
         self.kwargs = kwargs
 
     def register_data(self, data_path: str, data_sampling: int = -1, loader_type: str = 'bio', metadata: Optional[Dict] = None):
@@ -82,7 +84,7 @@ class Popper:
         if self.data_loader is None:
             raise ValueError("Please register data first using register_data()")
             
-        self.agent = SequentialFalsificationTest(llm=self.llm)
+        self.agent = SequentialFalsificationTest(llm=self.llm, is_local=self.is_local, port=self.port)
         self.agent.configure(
             data=self.data_loader,
             alpha=alpha,
