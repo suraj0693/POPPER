@@ -52,6 +52,12 @@ class Popper:
                 table_dict_selection='all_bio',
                 data_sampling=data_sampling
             )
+        elif loader_type == 'bio_selected':
+            self.data_loader = ExperimentalDataLoader(
+                data_path=data_path,
+                table_dict_selection='default',
+                data_sampling=data_sampling
+            )
         elif loader_type == 'custom':
             self.data_loader = CustomDataLoader(data_folder=data_path)
         elif loader_type == 'discovery_bench':
@@ -133,48 +139,53 @@ class Popper:
         import gradio as gr
         from gradio import ChatMessage
         from time import time
+        import asyncio
+        import copy
 
-        def generate_response(prompt, 
-                            designer_history = [],
-                            executor_history = [],
-                            relevance_checker_history = [],
-                            error_control_history = [],
-                            summarizer_history = []):
+        async def generate_response(prompt, 
+                                    designer_history=[],
+                                    executor_history=[],
+                                    relevance_checker_history=[],
+                                    error_control_history=[],
+                                    summarizer_history=[]):
 
-            designer_history.append(ChatMessage(role="user", content=prompt))
-            yield designer_history, executor_history, relevance_checker_history, error_control_history, summarizer_history
+            #designer_history.append(ChatMessage(role="user", content=prompt))
+            #yield designer_history, executor_history, relevance_checker_history, error_control_history, summarizer_history
 
-            self.agent.main_hypothesis = prompt
-            self.agent.log = []
-            config = {"recursion_limit": 500}
-            inputs = {"messages": [("user", prompt)]}
+            # Initialize log tracking
+            prev_log = copy.deepcopy(self.agent.log)  # Store initial log state
 
-            for s in self.agent.graph.stream(inputs, stream_mode="values", config = config):         
-                        
-                message = s["messages"][-1]
-                if 'stop_reason' in s["messages"][-1].response_metadata:
-                    stop_reason = s["messages"][-1].response_metadata['stop_reason']
-                else:
-                    stop_reason = None
+            # Run the agent asynchronously
+            task = asyncio.create_task(asyncio.to_thread(self.agent.go, prompt))
 
-                print(message)
-                if (message.type != "human") and (stop_reason != 'end_turn'):
-                    content = message.content
-                    if 'Relevance score' in content:
-                        relevance_checker_history.append(ChatMessage(role="assistant", content=content))
-                    
-                    designer_history.append(ChatMessage(role="assistant", content=content))
+            while not task.done():  # Check while the agent is still running
+                #print("Checking for new log messages...")
+                await asyncio.sleep(1)  # Wait for 1 second
 
-                yield designer_history, executor_history, relevance_checker_history, error_control_history, summarizer_history
+                # Check if log has changed
+                if self.agent.log != prev_log:
+                    prev_log = copy.deepcopy(self.agent.log)  # Update previous log state
 
-                if self.agent.num_of_tests + 1 > self.agent.max_num_of_tests or self.agent.max_failed_tests <= len(self.agent.test_proposal_agent.failed_tests):
-                    out = self.summarize()['messages'][0][1]
-                    summarizer_history.append(ChatMessage(role="assistant", content="Surpassing the maximum number of falsification tests, stopped and summarizing..."))
-                    summarizer_history.append(ChatMessage(role="assistant", content=out))
-                    yield designer_history, executor_history, relevance_checker_history, error_control_history, summarizer_history
-                    break
+                    # Convert new log messages to ChatMessage format
+                    designer_msgs = [ChatMessage(role="assistant", content=msg) for msg in self.agent.log['designer']]
+                    executor_msgs = [ChatMessage(role="assistant", content=msg) for msg in self.agent.log['executor']]
+                    relevance_msgs = [ChatMessage(role="assistant", content=msg) for msg in self.agent.log['relevance_checker']]
+                    sequential_msgs = [ChatMessage(role="assistant", content=msg) for msg in self.agent.log['sequential_testing']]
+                    summarizer_msgs = [ChatMessage(role="assistant", content=msg) for msg in self.agent.log['summarizer']]
 
-            yield designer_history, executor_history, relevance_checker_history, error_control_history
+                    yield designer_msgs, executor_msgs, relevance_msgs, sequential_msgs, summarizer_msgs
+
+            # Ensure final result is captured
+            result = await task
+
+            # Convert final logs to ChatMessage format before yielding
+            designer_msgs = [ChatMessage(role="assistant", content=msg) for msg in self.agent.log['designer']]
+            executor_msgs = [ChatMessage(role="assistant", content=msg) for msg in self.agent.log['executor']]
+            relevance_msgs = [ChatMessage(role="assistant", content=msg) for msg in self.agent.log['relevance_checker']]
+            sequential_msgs = [ChatMessage(role="assistant", content=msg) for msg in self.agent.log['sequential_testing']]
+            summarizer_msgs = [ChatMessage(role="assistant", content=msg) for msg in self.agent.log['summarizer']]
+
+            yield designer_msgs, executor_msgs, relevance_msgs, sequential_msgs, summarizer_msgs
 
 
         def like(evt: gr.LikeData):
@@ -192,7 +203,7 @@ class Popper:
                                         show_copy_all_button = True,
                     )
                     relevance_checker_chatbot = gr.Chatbot(label="Relevance Checker",
-                                                type="messages", height=200,
+                                                type="messages", height=300,
                                                 show_copy_button=True,
                                                 show_share_button = True,
                                                 group_consecutive_messages = False,
@@ -208,7 +219,7 @@ class Popper:
                                                 show_copy_all_button = True,
                                                 )
                     error_control_chatbot = gr.Chatbot(label="Sequential Error Control",
-                                                type="messages", height=200,
+                                                type="messages", height=300,
                                                 show_copy_button=True,
                                                 show_share_button = True,
                                                 group_consecutive_messages = False,
@@ -217,7 +228,7 @@ class Popper:
 
             with gr.Row():
                 summarizer = gr.Chatbot(label="Popper Summarizer", 
-                                                type="messages", height=150, 
+                                                type="messages", height=300, 
                                                 show_copy_button=True, 
                                                 show_share_button = True, 
                                                 group_consecutive_messages = False, 
@@ -226,13 +237,14 @@ class Popper:
             with gr.Row():
                 # Textbox on the left, and Button with an icon on the right
                 prompt_input = gr.Textbox(show_label = False, placeholder="What is your hypothesis?", scale=8)
-                button = gr.Button("Send")
+                button = gr.Button("Validate")
 
             button.click(lambda: gr.update(value=""), inputs=None, outputs=prompt_input)
             # Bind button click to generate_response function, feeding results to both chatbots
             button.click(generate_response, inputs=[prompt_input, designer_chatbot, executor_chatbot, relevance_checker_chatbot, error_control_chatbot, summarizer], outputs=[designer_chatbot, executor_chatbot, relevance_checker_chatbot, error_control_chatbot, summarizer])
 
         demo.launch(share = True)
+
 
     def download_all_data(self):
         url = "https://dataverse.harvard.edu/api/access/datafile/10888484"

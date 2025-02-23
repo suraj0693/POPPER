@@ -1,16 +1,23 @@
-# POPPER: Automated Hypothesis Testing with Agentic Sequential Falsifications
+# POPPER: Automated Hypothesis Validation with Agentic Sequential Falsifications
 
 This repository hosts the code base for the paper
 
-**Automated Agentic Hypothesis Testing with Sequential Falsifications**
+**Automated Agentic Hypothesis Validation with Sequential Falsifications**
 
 Kexin Huang*, Ying Jin*, Ryan Li*, Michael Y. Li, Emmanuel Candès, Jure Leskovec\
-[Link to Paper]()
+[Link to Paper](https://arxiv.org/abs/2502.09858)
 
 
 If you find this work useful, please consider cite:
 
 ```
+@misc{popper,
+      title={Automated Hypothesis Validation with Agentic Sequential Falsifications}, 
+      author={Kexin Huang and Ying Jin and Ryan Li and Michael Y. Li and Emmanuel Candès and Jure Leskovec},
+      year={2025},
+      eprint={2502.09858},
+      archivePrefix={arXiv}
+}
 ```
 
 
@@ -21,7 +28,7 @@ Guided by Karl Popper's principle of falsification, Popper validates a hypothesi
 We demonstrate Popper on six domains including biology, economics, and sociology. Popper delivers robust error control, high power, and scalability. Furthermore, compared to human scientists, Popper achieved comparable performance in validating complex biological hypotheses while reducing time by 10 folds, providing a scalable, rigorous solution for hypothesis validation.
 
 
-<p align="center"><img src="./figs/popper_agent_illustration.png" alt="logo" width="800px" /></p>
+<p align="center"><img src="https://github.com/snap-stanford/POPPER/blob/main/figs/popper_agent_illustration.png" alt="logo" width="800px" /></p>
 
 
 ## Installation
@@ -52,6 +59,10 @@ export ANTHROPIC_API_KEY="YOUR_API_KEY"
 ```
 
 Datasets will be automatically downloaded to specified data folder when you run the code.
+
+## Demo
+
+A demo is provided in [here](demo.ipynb) to show how to use the Popper agent to validate a hypothesis and basic functionalities of the Popper agent.
 
 ## Core API Usage
 
@@ -97,15 +108,6 @@ agent.configure(alpha = 0.1)
 agent.register_data(data_path='path/to/data', loader_type='custom')
 agent.validate(hypothesis = 'YOUR HYPOTHESIS')
 ```
-
-## UI interface
-You can deploy a simple UI interface with one line of code using your datasets or our bio dataset - a gradio UI will be generated and you can interact with it to validate your hypothesis. 
-
-```python
-agent.launch_ui(share = True)
-```
-
-<p align="center"><img src="./figs/ui_example.gif" alt="logo" width="800px" /></p>
 
 ## Hypothesis in Popper
 
@@ -154,10 +156,26 @@ As each hypothesis in discoverybench has its own associated dataset, the example
 
 ## Run benchmarks in the paper
 
-Bash scripts for reproducing the paper is provided in the `benchmark_scripts/run_targetval.sh` for `TargetVal` benchmark and `benchmark_scripts/run_discoverybench.sh` for `DiscoveryBench` benchmark. 
+Bash scripts for reproducing the paper is provided in the `benchmark_scripts/run_targetval.sh` for `TargetVal` benchmark and `benchmark_scripts/run_discoverybench.sh` for `DiscoveryBench` benchmark.
+
+**Note:** the Popper agent can read or write files to your filesystem. We recommend running the benchmark scripts inside a containerized environments. We have provided a working `Dockerfile` and an example script to launch a Docker container and execute the scripts in `benchmark_scripts/run_discoverybench_docker.sh`.
 
 ## Acknowledgement
 The DiscoveryBench benchmark and some of the baseline agents are built on top of [allenai/discoverybench](https://github.com/allenai/discoverybench). Thanks for their awsome work!
+
+
+## UI interface
+You can deploy a simple UI interface with one line of code using your datasets or our bio dataset - a gradio UI will be generated and you can interact with it to validate your hypothesis. 
+
+```python
+agent.launch_ui()
+```
+
+An interface like this will be popped up:
+
+[![demo](https://img.youtube.com/vi/jYFEeP2mEY8/0.jpg)](https://www.youtube.com/watch?v=jYFEeP2mEY8)
+
+
 
 ## Contact
 

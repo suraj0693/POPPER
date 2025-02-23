@@ -11,10 +11,49 @@ from langchain_core.callbacks import FileCallbackHandler, StdOutCallbackHandler
 import logging
 import uuid
 import traceback
-
+import io
+import contextlib
+import sys
+import re
 
 # uncomment the following line to enable debug mode
 # langchain.debug = True
+
+class LiveLogger:
+    """Custom stdout handler that logs in real-time while also printing output."""
+    def __init__(self, log):
+        self.original_stdout = sys.stdout  # Store original stdout
+        self.log = log  # Log dictionary
+        self.current_buffer = []  # Store intermediate logs
+
+    def clean_message(self, message):
+        """Remove ANSI escape codes and filter out unnecessary logs."""
+        # Remove ANSI escape codes (color formatting)
+        message = re.sub(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])', '', message)
+
+        # Filter out specific unwanted messages
+        unwanted_logs = [
+            "> Entering new AgentExecutor chain...",
+            "> Finished chain."
+        ]
+        if any(unwanted in message for unwanted in unwanted_logs):
+            return None  # Skip logging this message
+
+        return message.strip() if message.strip() else None
+
+    def write(self, message):
+        cleaned_message = self.clean_message(message)
+        if cleaned_message:
+            self.original_stdout.write(cleaned_message + "\n")  # Print to console
+            self.original_stdout.flush()  # Ensure immediate output
+            
+            # Append each new log update separately in Markdown format
+            self.current_buffer.append(cleaned_message)
+            self.log['executor'].append(f"```\n{cleaned_message}\n```")  # Markdown formatting
+
+    def flush(self):
+        self.original_stdout.flush()
+
 
 def get_prompt_data(
         prompt_config: str = None
@@ -103,8 +142,37 @@ class ReactAgent():
             )
             llm.client = openai.Client(base_url="http://127.0.0.1:40000/v1", api_key="EMPTY").chat.completions
         return llm
+        
+    def generate(self, data_loader, test_spec, domain, log=None):
+        try:
+            self.agent.tools[0]._set_globals(data_loader.table_dict)
+            dataset_desc = data_loader.data_desc
+            
+            # Use LiveLogger only if a log is provided
+            logger = LiveLogger(log) if log is not None else sys.stdout
 
-    def generate(self, data_loader, test_spec, domain):
+            # Redirect stdout to capture real-time logs
+            sys.stdout = logger
+            try:
+                output = self.agent.invoke(input={
+                    "system_prompt": get_react_coding_agent_system_prompt(domain=domain, prompt_revision=self.prompt_revision),
+                    "input": f"""Falsification Test: {test_spec}
+    Datasets: {dataset_desc}
+    Thought:"""
+                })
+            finally:
+                sys.stdout = logger.original_stdout  # Restore stdout
+
+            return output['output']
+
+        except Exception as e:
+            error_message = f"Execution Stopped due to: {e}\n{traceback.format_exc()}"
+            print(error_message)
+            if log is not None:
+                log['executor'].append(f"```\n{error_message}\n```")  # Markdown format
+            return None
+    '''
+    def generate(self, data_loader, test_spec, domain, log = None):
         try:
             self.agent.tools[0]._set_globals(data_loader.table_dict)
             dataset_desc = data_loader.data_desc
@@ -118,4 +186,5 @@ Thought:"""
         except Exception as e:
             print("Execution Stopped due to : ", e)
             print(traceback.format_exc())
-            return None
+            return None    
+    '''
