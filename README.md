@@ -199,22 +199,19 @@ Bash scripts for reproducing the paper is provided in the `benchmark_scripts/run
 python benchmark_scripts/run_discovery_bench.py --exp_name discovery_bench --model llama-3.3-70b --num_tests 5 --samples 100 --permute --e_value --react --relevance_checker --is_locally_served --server_port 30000 --path PATH_TO_YOUR_DATASET
 ```
 
-## Acknowledgement
-The DiscoveryBench benchmark and some of the baseline agents are built on top of [allenai/discoverybench](https://github.com/allenai/discoverybench). Thanks for their awsome work!
-
-
 ## UI interface
 You can deploy a simple UI interface with one line of code using your datasets or our bio dataset - a gradio UI will be generated and you can interact with it to validate your hypothesis. 
 
 ```python
-agent.launch_ui()
+agent.launch_UI()
 ```
 
 An interface like this will be popped up:
 
 [![demo](https://img.youtube.com/vi/jYFEeP2mEY8/0.jpg)](https://www.youtube.com/watch?v=jYFEeP2mEY8)
 
-
+## Acknowledgement
+The DiscoveryBench benchmark and some of the baseline agents are built on top of [allenai/discoverybench](https://github.com/allenai/discoverybench). Thanks for their awsome work!
 
 ## Contact
 
