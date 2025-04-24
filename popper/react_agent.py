@@ -75,6 +75,8 @@ class ReactAgent():
         api_config: str = None,
         max_iterations: int = 25,
         prompt_revision: bool = False,
+        port=None,
+        api_key="EMPTY",
     ):
         self.prompt_revision = prompt_revision
         self.api = "custom"
@@ -82,8 +84,8 @@ class ReactAgent():
             self.api = 'anthropic'
         elif model_name[:4] == 'gpt-':
             self.api = 'openai'
-        elif model_name.startswith('llama'):
-            self.api = 'llama'
+        else:
+            self.api = 'local'
         
         # logger.add(log_file, format="{time} {level} {message}", level="INFO")
         self.stdout_handler = StdOutCallbackHandler()
@@ -98,6 +100,8 @@ class ReactAgent():
         self.llm = self.get_model(
             api=self.api,
             model=self.model_name,
+            port=port,
+            api_key=api_key
         )
 
         # create agent
@@ -111,6 +115,8 @@ class ReactAgent():
             self,
             api,
             model,
+            port=None,
+            api_key=None,
             **kwargs
     ):
         llm = None
@@ -126,21 +132,23 @@ class ReactAgent():
                 api_key=os.environ["OPENAI_API_KEY"],
                 **kwargs
             )
-        elif (api == 'llama'):
-            llm = CustomChatModel(
-                model=model,
-                model_type='custom',
-                **kwargs
-            )
-            llm.client = openai.Client(base_url="http://127.0.0.1:30000/v1", api_key="EMPTY").chat.completions
+        # elif (api == 'llama'):
+        #     llm = CustomChatModel(
+        #         model=model,
+        #         model_type='custom',
+        #         **kwargs
+        #     )
+        #     llm.client = openai.Client(base_url="http://127.0.0.1:30000/v1", api_key="EMPTY").chat.completions
         else:
-            # Mixtral or other custom model
+            # Llama or other locally-served models
+            assert port is not None, "Port must be specified for local models"
             llm = CustomChatModel(
                 model=model,
                 model_type='custom',
                 **kwargs
             )
-            llm.client = openai.Client(base_url="http://127.0.0.1:40000/v1", api_key="EMPTY").chat.completions
+            api_key = "EMPTY" if api_key is None else api_key
+            llm.client = openai.Client(base_url=f"http://127.0.0.1:{port}/v1", api_key=api_key).chat.completions
         return llm
         
     def generate(self, data_loader, test_spec, domain, log=None):

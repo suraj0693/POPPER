@@ -615,7 +615,9 @@ class falsification_test_react_agent:
         
         self.agent = ReactAgent(
             model_name=llm,
-            prompt_revision=prompt_revision
+            prompt_revision=prompt_revision,
+            port=port,
+            api_key=api_key,
         )
         
         self.pvalue_check_prompt = ChatPromptTemplate.from_messages(
@@ -880,7 +882,7 @@ class SequentialFalsificationTest:
 
     def configure(self, data, alpha = 0.1, beta = 0.1, aggregate_test = 'E-value', llm_approx = False,
                     max_num_of_tests = 10, plot_agent_architecture = True,
-                    time_limit = 10, max_retry = 10, domain="biology", max_failed_tests = 10, relevance_checker = False, use_react_agent = False):
+                    time_limit = 10, max_retry = 10, domain="biology", max_failed_tests = 10, relevance_checker = False, use_react_agent = False, **kwargs):
         self.relevance_checker = relevance_checker
         self.max_num_of_tests = max_num_of_tests
         for name, df in data.table_dict.items():
