@@ -1025,13 +1025,7 @@ class SequentialFalsificationTest:
         graph_builder.add_edge('summarizer', END)
 
         self.graph = graph_builder.compile()
-        if plot_agent_architecture:
-            from IPython.display import Image, display
-            display(
-                Image(
-                    self.graph.get_graph().draw_mermaid_png()
-                )
-            )
+        
 
     def go(self, prompt):
         self.log = {
