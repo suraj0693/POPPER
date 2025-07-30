@@ -13,6 +13,7 @@ from langchain_anthropic import ChatAnthropic
 from langchain_openai import ChatOpenAI
 from langchain_core.messages.base import get_msg_title_repr
 from langchain_core.utils.interactive_env import is_interactive_env
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 def get_llm(model = 'claude-3-5-sonnet-20240620', temperature=0.7, port=30000, api_key = "EMPTY", **kwargs):
     source = "Local"
@@ -20,6 +21,8 @@ def get_llm(model = 'claude-3-5-sonnet-20240620', temperature=0.7, port=30000, a
         source = 'Anthropic'
     elif model[:4] == 'gpt-' or model.startswith("o1"):
         source = 'OpenAI'
+    elif model.startswith('gemini'):
+        source = "Google"
     # elif model.startswith('llama'):
     #     source = "Llama"
     # if source not in ['OpenAI', 'Anthropic']:
@@ -33,6 +36,12 @@ def get_llm(model = 'claude-3-5-sonnet-20240620', temperature=0.7, port=30000, a
                             temperature = temperature,
                             max_tokens = 4096,
                             **kwargs)
+    elif source == "Google":
+        return ChatGoogleGenerativeAI(
+            model=model,
+            google_api_key=api_key,
+            **kwargs
+        )
     else:
         # assuming a locally-served model
         assert port is not None, f"Model {model} is not supported, please provide a local port if it is a locally-served model."

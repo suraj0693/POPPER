@@ -15,7 +15,7 @@ import io
 import contextlib
 import sys
 import re
-
+from langchain_google_genai import ChatGoogleGenerativeAI
 # uncomment the following line to enable debug mode
 # langchain.debug = True
 
@@ -84,6 +84,9 @@ class ReactAgent():
             self.api = 'anthropic'
         elif model_name[:4] == 'gpt-':
             self.api = 'openai'
+        elif model_name.startswith('gemini'):
+            print("Using Gemini model")
+            self.api = 'google'
         else:
             self.api = 'local'
         
@@ -130,6 +133,12 @@ class ReactAgent():
             llm = ChatOpenAI(
                 model=model,
                 api_key=os.environ["OPENAI_API_KEY"],
+                **kwargs
+            )
+        elif (api == "google"):
+            llm = ChatGoogleGenerativeAI(
+                model=model,
+                api_key=api_key,
                 **kwargs
             )
         # elif (api == 'llama'):
